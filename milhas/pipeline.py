@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 import traceback
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
@@ -15,6 +16,10 @@ from .extract import extract
 from .http import Fetcher
 from .promos import refresh_statuses, upsert
 from .sources import OFFICIAL_DOMAINS, SOURCES
+
+
+FETCH_DEADLINE = [float("inf")]  # instante (monotonic) após o qual o ciclo não abre mais matérias
+FETCH_WINDOW_SECONDS = 15 * 60       # garante que o ciclo termine antes do limite de 25 min do GitHub
 
 
 def sync_sources(con) -> None:
@@ -95,8 +100,11 @@ def process_entry(con, src: dict, entry: discover.Entry, f: Fetcher | None, now:
     url = entry.url.split("#")[0]
     if not url:
         return
-    existing = con.execute("SELECT id, content_hash, promo_id, text FROM items WHERE url=?", (url,)).fetchone()
-    poor = existing is not None and len(existing["text"] or "") < 400  # texto guardado incompleto: vale reabrir a matéria
+    existing = con.execute("SELECT id, content_hash, promo_id, text, fetched_at FROM items WHERE url=?", (url,)).fetchone()
+    # texto guardado incompleto: vale reabrir a matéria — no máximo a cada 12h, para não insistir
+    # para sempre em páginas que são curtas mesmo
+    poor = (existing is not None and len(existing["text"] or "") < 400
+            and (existing["fetched_at"] or "") < (now - timedelta(hours=12)).isoformat())
     if existing is not None and not entry.full and not poor:
         # Já conhecida e a listagem só traz o título: não reprocessa com menos informação.
         # Exceção útil: a listagem passou a marcar a promoção como expirada/encerrada.
@@ -104,7 +112,8 @@ def process_entry(con, src: dict, entry: discover.Entry, f: Fetcher | None, now:
             con.execute("UPDATE promos SET expired_flag=1 WHERE id=?", (existing["promo_id"],))
         return
     text, links, published, title = entry.text, entry.links, entry.published, entry.title
-    if not entry.full and f is not None and fetch_budget[0] > 0 and (existing is None or poor):
+    if (not entry.full and f is not None and fetch_budget[0] > 0 and (existing is None or poor)
+            and time.monotonic() < FETCH_DEADLINE[0]):
         fetch_budget[0] -= 1
         r = f.get(url)
         if r.ok and r.text:
@@ -183,6 +192,7 @@ def run(trigger: str = "agendado", only: list[str] | None = None, fetcher: Fetch
     run_id = con.execute("INSERT INTO runs(started_at,trigger,status) VALUES(?,?,?)", (now.isoformat(), trigger, "rodando")).lastrowid
     con.commit()
     f = fetcher or Fetcher(m["per_host_interval_seconds"], m["timeout_seconds"])
+    FETCH_DEADLINE[0] = time.monotonic() + FETCH_WINDOW_SECONDS
     log: list[str] = []
     stats = {"items_new": 0, "updated": 0, "new_ids": set(), "changes": {}}
     ok = err = skipped = 0
