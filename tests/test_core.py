@@ -77,6 +77,8 @@ class Extraction(unittest.TestCase):
     def test_arrow_and_via_routes(self):
         e = ex("Bônus de transferência Emirates Skywards: até 25% via ALL Accor")
         self.assertEqual((e.origin, e.destination), (["ALL Accor"], "Emirates Skywards"))
+        e = ex("Bônus TudoAzul Emirates Skywards: +25%")
+        self.assertEqual((e.origin, e.destination), (["Emirates Skywards"], "Azul Fidelidade"))
         e = ex("Bônus Livelo → Smiles: 80%")
         self.assertEqual((e.origin, e.destination, e.bonus_pct), (["Livelo"], "Smiles", 80))
 
