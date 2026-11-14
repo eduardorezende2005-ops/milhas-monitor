@@ -74,6 +74,17 @@ class Extraction(unittest.TestCase):
         e = ex("Transfira pontos BRB para Azul e ganhe até 120% de bônus")
         self.assertEqual((e.category, e.origin, e.destination), ("transferencia", ["BRB"], "Azul Fidelidade"))
 
+    def test_arrow_and_via_routes(self):
+        e = ex("Bônus de transferência Emirates Skywards: até 25% via ALL Accor")
+        self.assertEqual((e.origin, e.destination), (["ALL Accor"], "Emirates Skywards"))
+        e = ex("Bônus Livelo → Smiles: 80%")
+        self.assertEqual((e.origin, e.destination, e.bonus_pct), (["Livelo"], "Smiles", 80))
+
+    def test_far_future_is_travel_window(self):
+        e = ex("Azul Friday: EMBARQUE25 — até 25% OFF em pacotes, pagando com pontos", "Viagens até 26/09/2027.", "2026-11-13T10:00:00-03:00")
+        self.assertIsNone(e.end_at)
+        self.assertEqual(ex("Passagem TudoAzul GRU", "voos a partir de 7 mil pontos, milheiro a R$ 13,50").category, "resgate")
+
     def test_bonified(self):
         e = ex("Ganhe até 7 Pontos Esfera por Real em Compras na Centauro")
         self.assertEqual((e.category, e.program, e.partner, e.ppr), ("compra_bonificada", "Esfera", "Centauro", 7.0))
