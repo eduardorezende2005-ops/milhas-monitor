@@ -94,6 +94,21 @@ class Collector(unittest.TestCase):
         self.assertIn("2026-11-16", ch[0]["new"])
         self.assertTrue(rows(con, "SELECT * FROM alerts WHERE kind='mudanca'"))
 
+    def test_second_run_is_idempotent(self):
+        only = ["passageirodeprimeira", "melhorescartoes", "cartoeseviagens"]
+        self.p.run("manual", only, FakeFetcher(self.routes()))
+        from milhas.db import connect
+        con = connect(Path(os.environ["MILHAS_DB"]))
+        n1 = con.execute("SELECT COUNT(*) FROM promos").fetchone()[0]
+        con.close()
+        os.environ["MILHAS_NOW"] = "2026-11-10T12:30:00-03:00"
+        r = self.p.run("agendado", only, FakeFetcher(self.routes()))
+        con = connect(Path(os.environ["MILHAS_DB"]))
+        self.assertEqual(con.execute("SELECT COUNT(*) FROM promos").fetchone()[0], n1)
+        self.assertEqual(r["promos_new"], 0)
+        txt = con.execute("SELECT text FROM items WHERE url LIKE '%transferencia-de-pontos-bonus-70porcento'").fetchone()[0]
+        self.assertIn("Período de 09/11/2026", txt)  # texto completo preservado, não trocado pelo título da listagem
+
     def test_cooldown(self):
         f = FakeFetcher({})
         for i in range(5):
