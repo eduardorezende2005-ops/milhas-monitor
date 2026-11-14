@@ -1,0 +1,104 @@
+name: monitor
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"      # a cada 30 min (UTC; o GitHub pode atrasar alguns minutos)
+  workflow_dispatch:             # botão "Run workflow" = atualização manual
+    inputs:
+      report:
+        description: "Forçar relatório (daily/weekly) — deixe vazio para ciclo normal"
+        required: false
+        default: ""
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Banco persistente: fica no branch "data" (um único commit, reescrito a cada ciclo,
+      # para o repositório não crescer). Backup semanal vai como artefato do Actions.
+      - name: Restaurar banco
+        run: |
+          mkdir -p data
+          if git ls-remote --exit-code origin data >/dev/null 2>&1; then
+            git fetch --depth=1 origin data
+            git show origin/data:milhas.db > data/milhas.db || true
+          fi
+
+      - name: Executar ciclo
+        env:
+          TZ: America/Sao_Paulo
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          WHATSAPP_PHONE_ID: ${{ secrets.WHATSAPP_PHONE_ID }}
+          WHATSAPP_TO: ${{ secrets.WHATSAPP_TO }}
+          WHATSAPP_TEMPLATE: ${{ secrets.WHATSAPP_TEMPLATE }}
+        run: |
+          if [ -n "${{ github.event.inputs.report }}" ]; then
+            python -m milhas report "${{ github.event.inputs.report }}"
+            python -m milhas export
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python -m milhas run --manual
+          else
+            python -m milhas run
+          fi
+
+      - name: Salvar banco no branch data
+        if: always()
+        run: |
+          [ -f data/milhas.db ] || exit 0
+          tmp=$(mktemp -d)
+          cp data/milhas.db "$tmp/"
+          cd "$tmp"
+          git init -q -b data
+          git config user.name "milhas-bot"
+          git config user.email "milhas-bot@users.noreply.github.com"
+          git add milhas.db
+          git commit -qm "estado $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
+
+      - name: Decidir backup
+        id: bk
+        if: always()
+        run: echo "go=$([ "$(date -u +%u%H)" = "111" ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"   # segunda 11h UTC = 8h BRT
+
+      - name: Backup semanal
+        if: always() && steps.bk.outputs.go == 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: milhas-db-${{ github.run_number }}
+          path: data/milhas.db
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
