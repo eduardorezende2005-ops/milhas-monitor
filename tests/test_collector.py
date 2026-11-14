@@ -109,6 +109,18 @@ class Collector(unittest.TestCase):
         txt = con.execute("SELECT text FROM items WHERE url LIKE '%transferencia-de-pontos-bonus-70porcento'").fetchone()[0]
         self.assertIn("Período de 09/11/2026", txt)  # texto completo preservado, não trocado pelo título da listagem
 
+    def test_poor_text_is_refetched(self):
+        only = ["cartoeseviagens"]
+        self.p.run("manual", only, FakeFetcher(self.routes()))
+        from milhas.db import connect
+        con = connect(Path(os.environ["MILHAS_DB"]))
+        con.execute("UPDATE items SET text='Ganhe até 70% de bônus', content_hash='x'"); con.commit(); con.close()
+        os.environ["MILHAS_NOW"] = "2026-11-10T12:30:00-03:00"
+        self.p.run("agendado", only, FakeFetcher(self.routes()))
+        con = connect(Path(os.environ["MILHAS_DB"]))
+        txt = con.execute("SELECT text FROM items WHERE url LIKE '%70porcento'").fetchone()[0]
+        self.assertIn("Período de 09/11/2026", txt)
+
     def test_cooldown(self):
         f = FakeFetcher({})
         for i in range(5):
