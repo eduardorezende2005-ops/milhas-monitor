@@ -34,6 +34,8 @@ PROGRAMS: dict[str, tuple[str, str]] = {
     "Mundo Avios": (r"mundo avios|\bavios\b", "aereo"),
     "ConnectMiles": (r"connectmiles|\bcopa\b", "aereo"),
     "Turkish Miles&Smiles": (r"\bturkish\b", "aereo"),
+    "Emirates Skywards": (r"\bemirates\b|skywards", "aereo"),
+    "Flying Blue": (r"flying blue", "aereo"),
     "ALL Accor": (r"\ball accor\b|\ball\b(?= accor)|\baccor\b", "hotel"),
     "Livelo": (r"\blivelo\b", "pontos"),
     "Esfera": (r"\besfera\b", "pontos"),
@@ -134,7 +136,7 @@ def classify(title: str, text: str) -> str:
         return "clube"
     if re.search(r"(?:pontos?|milhas?|pts)(?:\s+\w+){0,2}\s+(?:por|a cada)\s+(?:real|r\$\s?1)|compre e pontue|turbina saldo|pontuação turbinada|pontos por real", t):
         return "compra_bonificada"
-    if (re.search(r"resgate|passage(?:m|ns)|trechos?|voos?\b|emiss|classe executiva|executiva|ida e volta|só ida", t) and re.search(r"milhas|pontos|avios", t)) \
+    if (re.search(r"resgate|passage(?:m|ns)|trechos?|voos?\b|emiss|classe executiva|executiva|ida e volta|só ida", t) and (re.search(r"milhas|pontos|avios", t) or programs_in(title))) \
             or re.search(r"(?:por|a partir de|ou)\s+[\d.,]+\s*(?:mil\s+)?(?:milhas|pontos|avios)\b", t):
         return "resgate"
     if re.search(r"cartão|cartao|anuidade|meta de gastos|bater meta|pontos extras", t):
@@ -158,7 +160,13 @@ def programs_in(s: str) -> list[str]:
 
 def _transfer_parties(title: str, text: str) -> tuple[list[str], str | None]:
     t = title
-    for m in re.finditer(r"\s+para\s+(?:o\s+|a\s+)?", t):
+    m = re.search(r"\bvia\s+(.{3,40})$", t)
+    if m and programs_in(m.group(1)):
+        o = programs_in(m.group(1))[0]
+        d = next((p for p in programs_in(t[:m.start()]) if p != o), None)
+        if d:
+            return [o], d
+    for m in re.finditer(r"\s+(?:para|→|->)\s+(?:o\s+|a\s+)?", t):
         left, right = t[max(0, m.start() - 45):m.start()], t[m.end():m.end() + 45]
         o, d = programs_in(left), programs_in(right)
         if o and d:
@@ -299,6 +307,9 @@ def extract(title: str, text: str, published: datetime, links: list[str] | None 
     e.start_at, e.end_at, e.end_source = w.start, w.end, w.end_source
     if e.category == "resgate":
         e.start_at = None  # intervalos em ofertas de passagem costumam ser datas de viagem
+    if e.category in ("resgate", "outra") and e.end_at and (e.end_at - published).days > 120:
+        e.start_at = e.end_at = None  # prazo muito distante = período de viagem, não fim da campanha
+        e.end_source = ""
     if w.credit_deadline and not e.credit_deadline:
         e.credit_deadline = w.credit_deadline.strftime("%d/%m/%Y")
 
