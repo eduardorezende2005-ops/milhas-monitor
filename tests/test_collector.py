@@ -114,12 +114,23 @@ class Collector(unittest.TestCase):
         self.p.run("manual", only, FakeFetcher(self.routes()))
         from milhas.db import connect
         con = connect(Path(os.environ["MILHAS_DB"]))
-        con.execute("UPDATE items SET text='Ganhe até 70% de bônus', content_hash='x'"); con.commit(); con.close()
+        con.execute("UPDATE items SET text='Ganhe até 70% de bônus', content_hash='x', fetched_at='2026-11-09T00:00:00-03:00'"); con.commit(); con.close()
         os.environ["MILHAS_NOW"] = "2026-11-10T12:30:00-03:00"
         self.p.run("agendado", only, FakeFetcher(self.routes()))
         con = connect(Path(os.environ["MILHAS_DB"]))
         txt = con.execute("SELECT text FROM items WHERE url LIKE '%70porcento'").fetchone()[0]
         self.assertIn("Período de 09/11/2026", txt)
+
+    def test_short_page_not_refetched_every_cycle(self):
+        only = ["cartoeseviagens"]
+        self.p.run("manual", only, FakeFetcher(self.routes()))
+        from milhas.db import connect
+        con = connect(Path(os.environ["MILHAS_DB"]))
+        con.execute("UPDATE items SET text='curta', content_hash='x'"); con.commit(); con.close()  # fetched_at = agora
+        os.environ["MILHAS_NOW"] = "2026-11-10T12:30:00-03:00"
+        f = FakeFetcher(self.routes())
+        self.p.run("agendado", only, f)
+        self.assertNotIn("https://cartoeseviagens.com.br/transferencia-de-pontos-bonus-70porcento", f.calls)
 
     def test_cooldown(self):
         f = FakeFetcher({})
