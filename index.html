@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central de Pontos e Milhas</title>
+<style>
+:root{
+  --page:#f9f9f7;--surface:#fcfcfb;--card:#ffffff;--ink:#0b0b0b;--ink2:#52514e;--muted:#8a8984;--line:#e6e5e0;
+  --accent:#2a78d6;--accent-soft:#e8f1fc;--good:#0ca30c;--warn:#b77a00;--serious:#ec835a;--crit:#d03b3b;
+  --c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;
+  --radius:12px;--shadow:0 1px 2px rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root{
+  --page:#0d0d0d;--surface:#1a1a19;--card:#1f1f1e;--ink:#f0efec;--ink2:#c3c2b7;--muted:#8d8c86;--line:#33332f;
+  --accent:#3987e5;--accent-soft:#16263a;--warn:#fab219;
+  --c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#0ca30c;--c7:#9085e9;
+  --shadow:none;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{max-width:1280px;margin:auto;padding:14px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+h1{font-size:18px;margin:0;font-weight:650;letter-spacing:-.01em}
+.updated{color:var(--ink2);font-size:12.5px}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer;font:inherit;font-size:13px}
+.btn:hover{border-color:var(--accent)}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+nav{max-width:1280px;margin:auto;padding:0 20px;display:flex;gap:2px;overflow-x:auto}
+nav button{border:0;background:none;color:var(--ink2);padding:10px 14px;font:inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+main{max-width:1280px;margin:auto;padding:20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);cursor:default}
+.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--accent)}
+.kpi .v{font-size:28px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .l{color:var(--ink2);font-size:12.5px}
+h2{font-size:15px;margin:26px 0 10px;font-weight:650}
+.sub{color:var(--ink2);font-size:13px;margin:-4px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;position:relative}
+.card h3{font-size:14.5px;margin:0;line-height:1.35;font-weight:600;padding-right:26px}
+.route{font-size:13px;color:var(--ink2);font-weight:500}
+.big{font-size:20px;font-weight:650;letter-spacing:-.01em}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.chip.cat{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.st{font-size:11.5px;padding:2px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
+.st.ativa_verificada{background:rgba(12,163,12,.12);color:var(--good)}
+.st.ativa_pendente{background:rgba(250,178,25,.16);color:var(--warn)}
+.st.futura{background:var(--accent-soft);color:var(--accent)}
+.st.encerrada{background:rgba(138,137,132,.15);color:var(--muted)}
+.st.indeterminada{background:rgba(236,131,90,.15);color:var(--serious)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:12.5px}
+dt{color:var(--muted)}dd{margin:0;color:var(--ink)}
+.srcs{font-size:12px;color:var(--ink2);border-top:1px dashed var(--line);padding-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.star{position:absolute;top:12px;right:12px;border:0;background:none;font-size:18px;cursor:pointer;color:var(--muted);line-height:1}
+.star.on{color:var(--c4)}
+.foot{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);align-items:center;flex-wrap:wrap}
+.filters{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+.filters label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--ink2)}
+.filters input,.filters select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);min-width:0}
+.filters .chk{flex-direction:row;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);padding-bottom:6px}
+.count{color:var(--ink2);font-size:13px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--ink2);font-weight:600;background:var(--surface)}
+tr:last-child td{border-bottom:0}
+.tablewrap{overflow-x:auto}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:var(--radius);padding:24px;color:var(--ink2);text-align:center}
+.note{background:var(--accent-soft);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--ink);margin-bottom:14px}
+.hbar{display:grid;grid-template-columns:minmax(120px,240px) 1fr 70px;gap:10px;align-items:center;font-size:12.5px;margin:6px 0}
+.hbar .track{height:14px;position:relative}
+.hbar .fill{height:14px;background:var(--c1);border-radius:0 4px 4px 0;min-width:2px}
+.hbar .val{font-variant-numeric:tabular-nums;color:var(--ink2)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px}
+.list{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:10px;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:13px}
+.row:last-child{border-bottom:0}
+pre{white-space:pre-wrap;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:300px;overflow:auto}
+details summary{cursor:pointer;color:var(--accent);font-size:12.5px}
+.ev{display:inline-block;font-size:11px;padding:1px 6px;margin:2px;border-radius:5px;background:var(--surface);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+@media (max-width:640px){.grid{grid-template-columns:1fr}.two{grid-template-columns:1fr}.hbar{grid-template-columns:110px 1fr 54px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1 id="title">Central de Pontos e Milhas</h1>
+    <span class="updated" id="updated"></span>
+    <span class="spacer"></span>
+    <a class="btn" id="manual" target="_blank" rel="noopener">⟳ Atualizar agora</a>
+  </div>
+  <nav id="tabs"></nav>
+</header>
+<main id="app"></main>
+<script>
+const DATA = /*__DATA__*/null;
+(async function(){
+let D = DATA;
+if(!D){ try{ D = await (await fetch('data.json',{cache:'no-store'})).json(); }catch(e){ document.getElementById('app').innerHTML='<div class="empty">Sem dados ainda. Rode <code>python -m milhas run</code>.</div>'; return; } }
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = s => { if(!s) return '—'; const d=new Date(s); const p=n=>String(n).padStart(2,'0');
+  const t=`${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`; const h=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'});
+  return (h==='23:59'||h==='00:00')?t:`${t} ${h}`; };
+const fmtDT = s => s? new Date(s).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+const ago = s => { if(!s) return ''; const m=(Date.now()-new Date(s))/60000; if(m<1) return 'agora'; if(m<60) return `há ${Math.round(m)} min`; if(m<1440) return `há ${Math.round(m/60)} h`; return `há ${Math.round(m/1440)} d`; };
+const store = { get(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d }catch(e){ return d } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} } };
+let favs = new Set(store.get('milhas_favs',[]));
+const NOW = new Date(D.generated_at);
+const ACTIVE = ['ativa_verificada','ativa_pendente'];
+
+$('#title').textContent = D.title;
+$('#updated').textContent = `Última verificação: ${fmtDT(D.last_run)} (${ago(D.last_run)})`;
+const man = $('#manual'); if(D.manual_update_url){ man.href = D.manual_update_url; man.title='Abre o GitHub Actions → "Run workflow" (exige login no GitHub)'; } else { man.href='#'; man.onclick=e=>{e.preventDefault(); man.textContent='Disponível após a implantação no GitHub (Run workflow) ou: python -m milhas run --manual';}; }
+
+const TABS = [['geral','Visão geral'],['promos','Promoções'],['hist','Histórico'],['alertas','Alertas'],['fontes','Fontes'],['exec','Execuções e relatórios']];
+let tab = location.hash.slice(1) || 'geral';
+function nav(){ $('#tabs').innerHTML = TABS.map(([k,l])=>`<button class="${k===tab?'on':''}" data-t="${k}">${l}</button>`).join(''); }
+$('#tabs').onclick = e => { const t=e.target.dataset.t; if(t){ tab=t; location.hash=t; render(); } };
+
+const score = p => (p.bonus_pct||0) + (p.ppr||0)*8 + (p.discount_pct||0)*(p.category==='compra_pontos'?1:0.3) + (p.milheiro && ['compra_pontos','clube'].includes(p.category)? (60-p.milheiro)*3:0) - (p.category==='resgate'?40:0);
+
+function card(p){
+  const st = `<span class="st ${p.status}">${esc(D.status_labels[p.status]||p.status)}</span>`;
+  const rows = [];
+  if(p.category==='transferencia'){ rows.push(['Origem', p.origin.join(', ')||'não identificada'], ['Destino', p.destination||'não identificado']); }
+  if(p.partner) rows.push(['Loja', p.partner]);
+  if(p.milheiro) rows.push(['Milheiro', `R$ ${p.milheiro.toFixed(2).replace('.',',')}${p.milheiro_calculado?' (calculado)':''}`]);
+  rows.push(['Clube', p.club_required||'não informado']);
+  if(p.registration_required && p.registration_required!=='não informado') rows.push(['Cadastro prévio', p.registration_required]);
+  if(p.min_transfer) rows.push(['Mínimo', p.min_transfer.toLocaleString('pt-BR')+' pontos']);
+  if(p.limit_text) rows.push(['Limite', p.limit_text]);
+  if(p.credit_deadline) rows.push(['Crédito', p.credit_deadline]);
+  if(p.validity) rows.push(['Validade', p.validity]);
+  if(p.start_at) rows.push(['Início', fmt(p.start_at)]);
+  rows.push(['Encerramento', p.end_at ? fmt(p.end_at) + (p.end_source?` <span style="color:var(--muted)">(${esc(p.end_source)})</span>`:'') : '<span style="color:var(--serious)">não identificado — confira na fonte</span>']);
+  if(p.conditions && p.conditions.length) rows.push(['Condições', p.conditions.map(esc).join(' · ')]);
+  const seenS = new Set(); const srcs = p.sources.filter(s=>!seenS.has(s.source_id) && seenS.add(s.source_id)).map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.title)}">${esc(s.name)}</a>`).join(' · ');
+  const changes = p.changes.length ? `<details><summary>${p.changes.length} alteração(ões) registrada(s)</summary>${p.changes.map(c=>`<div style="font-size:12px">${fmtDT(c.at)} — ${esc(c.field)}: ${esc(c.old)} → ${esc(c.new)}</div>`).join('')}</details>` : '';
+  return `<div class="card">
+    <button class="star ${favs.has(p.id)?'on':''}" data-fav="${p.id}" title="Favoritar">${favs.has(p.id)?'★':'☆'}</button>
+    <div class="chips"><span class="chip cat">${esc(D.categories[p.category])}</span>${st}${(Date.now()-new Date(p.first_seen))<864e5?'<span class="chip">novo</span>':''}</div>
+    <h3>${esc(p.title)}</h3>
+    <div class="route">${esc(p.route)}</div>
+    ${p.headline?`<div class="big">${esc(p.headline)}</div>`:''}
+    <dl>${rows.map(([k,v])=>`<dt>${k}</dt><dd>${k==='Encerramento'||k==='Condições'?v:esc(v)}</dd>`).join('')}</dl>
+    ${changes}
+    <div class="srcs">Fontes (${seenS.size}): ${srcs}</div>
+    <div class="foot"><span>Verificado ${fmtDT(p.last_verified)}</span><a href="${esc(p.link)}" target="_blank" rel="noopener">${p.official_url?'Regulamento oficial ↗':'Abrir promoção ↗'}</a></div>
+  </div>`;
+}
+
+function bindFavs(root){ root.querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>{ const id=+b.dataset.fav; favs.has(id)?favs.delete(id):favs.add(id); store.set('milhas_favs',[...favs]); render(); }); }
+
+function geral(){
+  const s = D.stats, act = D.promos.filter(p=>ACTIVE.includes(p.status));
+  const k = [['active','Promoções ativas','ativas'],['new_24h','Novas em 24h','novas'],['ending_24h','Encerram em 24h','encerrando'],['transfer','Transferências bonificadas','cat:transferencia'],['bonified','Compras bonificadas','cat:compra_bonificada'],['buy_points','Compra de pontos','cat:compra_pontos'],['clubs','Ofertas de clubes','cat:clube'],['indeterminate','Sem data confirmada','indet']];
+  const best = [...act].sort((a,b)=>score(b)-score(a)).slice(0,6);
+  const ending = act.filter(p=>p.end_at && new Date(p.end_at)-NOW < 864e5).sort((a,b)=>a.end_at.localeCompare(b.end_at));
+  return `<div class="kpis">${k.map(([key,l,f])=>`<div class="kpi click" data-go="${f}"><div class="v">${s[key]}</div><div class="l">${l}</div></div>`).join('')}</div>
+   <div class="note">Conta como <b>ativa</b> somente campanha com data de encerramento identificada e ainda não vencida. <b>Verificada</b> = confirmada pelo regulamento oficial ou por 2+ fontes com a mesma data. Campanhas sem data aparecem como <b>Indeterminada</b> e não entram na contagem.</div>
+   <h2>Melhores oportunidades ativas</h2>${best.length?`<div class="grid">${best.map(card).join('')}</div>`:'<div class="empty">Nenhuma promoção ativa no momento.</div>'}
+   <h2>Encerrando nas próximas 24 horas</h2>${ending.length?`<div class="grid">${ending.map(card).join('')}</div>`:'<div class="empty">Nenhuma.</div>'}`;
+}
+
+let F = store.get('milhas_filters', {status:'abertas'});
+function promos(){
+  const progs = [...new Set(D.promos.flatMap(p=>[p.program,p.destination,...p.origin]).filter(Boolean))].sort();
+  const partners = [...new Set(D.promos.map(p=>p.partner).filter(Boolean))].sort();
+  const sel = (id,label,opts) => `<label>${label}<select data-f="${id}"><option value="">Todos</option>${opts.map(([v,l])=>`<option value="${esc(v)}" ${F[id]==v?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
+  const num = (id,label,ph) => `<label>${label}<input type="number" step="any" data-f="${id}" value="${esc(F[id]??'')}" placeholder="${ph}" style="width:96px"></label>`;
+  const chk = (id,label) => `<label class="chk"><input type="checkbox" data-f="${id}" ${F[id]?'checked':''}>${label}</label>`;
+  const list = filtered();
+  return `<div class="filters">
+    <label style="flex:1;min-width:200px">Pesquisa<input data-f="q" value="${esc(F.q||'')}" placeholder="loja, programa, título…"></label>
+    ${sel('status','Status',[['abertas','Ativas + futuras + sem data'],['ativas','Somente ativas'],...Object.entries(D.status_labels)])}
+    ${sel('program','Programa',progs.map(p=>[p,p]))}
+    ${sel('category','Categoria',Object.entries(D.categories))}
+    ${sel('partner','Loja parceira',partners.map(p=>[p,p]))}
+    ${num('bonus','Bônus mín. %','80')}${num('ppr','Pontos/R$ mín.','10')}${num('mil','Milheiro máx. R$','30')}
+    <label>Encerra até<input type="date" data-f="endby" value="${esc(F.endby||'')}"></label>
+    ${sel('recent','Recentes',[['24','Últimas 24h'],['168','Últimos 7 dias']])}
+    ${chk('verified','Só verificadas')}${chk('subs','Exclusivas p/ assinantes')}${chk('favs','★ Favoritas')}
+    <button class="btn" id="clear">Limpar</button>
+  </div><p class="count">${list.length} promoção(ões)</p>
+  ${list.length?`<div class="grid">${list.map(card).join('')}</div>`:'<div class="empty">Nenhuma promoção com esses filtros.</div>'}`;
+}
+function filtered(){
+  const q=(F.q||'').toLowerCase();
+  return D.promos.filter(p=>{
+    if(F.status==='abertas' && p.status==='encerrada') return false;
+    if(F.status==='ativas' && !ACTIVE.includes(p.status)) return false;
+    if(F.status && !['abertas','ativas'].includes(F.status) && p.status!==F.status) return false;
+    if(F.program && ![p.program,p.destination,...p.origin].includes(F.program)) return false;
+    if(F.category && p.category!==F.category) return false;
+    if(F.partner && p.partner!==F.partner) return false;
+    if(F.bonus && !((p.bonus_pct||0)>=+F.bonus)) return false;
+    if(F.ppr && !((p.ppr||0)>=+F.ppr)) return false;
+    if(F.mil && !(p.milheiro && p.milheiro<=+F.mil)) return false;
+    if(F.endby && !(p.end_at && p.end_at.slice(0,10)<=F.endby)) return false;
+    if(F.recent && (NOW-new Date(p.first_seen))>F.recent*36e5) return false;
+    if(F.verified && p.status!=='ativa_verificada') return false;
+    if(F.subs && !(p.club_required||'').startsWith('sim')) return false;
+    if(F.favs && !favs.has(p.id)) return false;
+    if(q && !JSON.stringify([p.title,p.program,p.partner,p.route,p.destination,p.origin]).toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a,b)=> (ACTIVE.includes(b.status)-ACTIVE.includes(a.status)) || (b.first_seen||'').localeCompare(a.first_seen||''));
+}
+function bindFilters(){
+  document.querySelectorAll('[data-f]').forEach(el=>{
+    const h=()=>{ F[el.dataset.f] = el.type==='checkbox'?el.checked:el.value; store.set('milhas_filters',F); const pos=el.selectionStart; render(); const n=document.querySelector(`[data-f="${el.dataset.f}"]`); if(n && el.dataset.f==='q'){ n.focus(); try{n.setSelectionRange(pos,pos)}catch(e){} } };
+    el.addEventListener(el.tagName==='INPUT'&&el.type!=='checkbox'?'input':'change', h);
+  });
+  const c=$('#clear'); if(c) c.onclick=()=>{ F={status:'abertas'}; store.set('milhas_filters',F); render(); };
+}
+
+function bars(items, valKey, labelKey, unit){
+  const max = Math.max(...items.map(i=>i[valKey]),1);
+  return items.map(i=>`<div class="hbar" title="${esc(i[labelKey])}: ${i[valKey]}${unit}"><div>${esc(i[labelKey])}</div><div class="track"><div class="fill" style="width:${100*i[valKey]/max}%"></div></div><div class="val">${String(i[valKey]).replace('.',',')}${unit}</div></div>`).join('');
+}
+function hist(){
+  const h = D.history;
+  const insuf = '<div class="empty">Ainda não há dados reais suficientes. Os indicadores aparecem conforme o histórico se acumula — nada é preenchido com valores fictícios.</div>';
+  const tr = h.transfer_routes.filter(r=>r.count>=1);
+  const st = h.stores.filter(r=>r.count>=1);
+  return `<div class="note">Base atual: ${h.total_campaigns} campanhas registradas em ${h.days_of_data} dia(s) de monitoramento.</div>
+  <div class="two">
+   <div class="panel"><h2 style="margin-top:0">Transferências: maior bônus por rota</h2><p class="sub">Frequência de faixas de bônus por rota.</p>
+     ${tr.length? bars(tr.slice(0,12),'max','route','%') + `<details><summary>Frequência por faixa</summary>${tr.map(r=>`<div style="font-size:12px;margin:4px 0"><b>${esc(r.route)}</b> — ${r.count} campanha(s): ${Object.entries(r.buckets).map(([b,n])=>`${b}: ${n}`).join(' · ')}</div>`).join('')}</details>` : insuf}</div>
+   <div class="panel"><h2 style="margin-top:0">Compras bonificadas: pontos por real</h2><p class="sub">Última oferta vs. mediana da loja (com 2+ registros).</p>
+     ${st.length? st.slice(0,12).map(s=>`<div class="row"><span>${esc(s.store)}</span><span>${s.events.map(e=>`<span class="ev" title="${e.date}">${String(e.ppr).replace('.',',')}</span>`).join('')} ${s.count>=2?`<b>${s.last>=s.median*1.5?'▲ acima do padrão':''}</b> mediana ${String(s.median).replace('.',',')}`:''}</span></div>`).join('') : insuf}</div>
+   <div class="panel"><h2 style="margin-top:0">Custo do milheiro</h2><p class="sub">Menor custo registrado por programa.</p>
+     ${h.milheiro.length? bars(h.milheiro.map(m=>({...m,min:+m.min.toFixed(2)})),'min','program',' R$') + h.milheiro.map(m=>`<div style="font-size:12px">${esc(m.program)}: ${m.events.map(e=>`<span class="ev" title="${e.date}">R$ ${e.value.toFixed(2).replace('.',',')}</span>`).join('')}</div>`).join('') : insuf}</div>
+   <div class="panel"><h2 style="margin-top:0">Programas com mais oportunidades</h2><p class="sub">Campanhas registradas nos últimos 30 dias.</p>
+     ${h.top_programs_30d.length? bars(h.top_programs_30d,'count','program','') : insuf}
+     <h2>Campanhas de clubes</h2>${h.clubs.length? bars(h.clubs,'count','program','') : insuf}</div>
+  </div>`;
+}
+
+function alertas(){
+  const ch = D.channels, a = D.alert_settings;
+  const chs = [['telegram','Telegram'],['email','E-mail'],['whatsapp','WhatsApp (API oficial Meta)'],['dashboard','Dashboard']];
+  return `<div class="two"><div class="panel"><h2 style="margin-top:0">Canais</h2>${chs.map(([k,l])=>`<div class="row"><span>${l}</span><span>${ch[k]?'<span class="st ativa_verificada">configurado</span>':'<span class="st encerrada">não configurado</span>'}</span></div>`).join('')}</div>
+  <div class="panel"><h2 style="margin-top:0">Preferências (config/settings.toml)</h2>
+    <div class="row"><span>Transferência com bônus a partir de</span><b>${a.transfer_min_bonus}%</b></div>
+    <div class="row"><span>Compra bonificada a partir de</span><b>${a.ppr_min} pts/R$</b></div>
+    <div class="row"><span>Milheiro até</span><b>R$ ${(+a.milheiro_max).toFixed(2).replace('.',',')}</b></div>
+    <div class="row"><span>Aviso de encerramento</span><b>${a.ending_hours}h antes</b></div>
+    <div class="row"><span>Acima do histórico</span><b>${a.ppr_above_history_factor}× a mediana</b></div>
+    <div class="row"><span>Programas filtrados</span><b>${(a.programs||[]).join(', ')||'todos'}</b></div></div></div>
+  <h2>Últimos alertas</h2>${D.alerts.length?`<div class="tablewrap"><table><tr><th>Quando</th><th>Alerta</th><th>Detalhe</th><th>Enviado</th></tr>${D.alerts.map(x=>`<tr><td style="white-space:nowrap">${fmtDT(x.created_at)}</td><td><b>${esc(x.title)}</b></td><td>${esc(x.message)}<br><a href="${esc(x.url)}" target="_blank" rel="noopener">link ↗</a></td><td>${esc(x.sent||'pendente')}</td></tr>`).join('')}</table></div>`:'<div class="empty">Nenhum alerta ainda.</div>'}`;
+}
+
+function fontes(){
+  const groups = [['automático','Monitoradas automaticamente (RSS / API)','var(--good)'],['parcial','Parcialmente monitoradas (HTML público)','var(--warn)'],['com falhas','Com falhas recentes','var(--serious)'],['indisponível','Indisponíveis','var(--crit)'],['pendente','Aguardando a primeira consulta','var(--muted)']];
+  const tierL = {3:'Oficial',2:'Portal',1:'Agregador'};
+  return `<div class="note">Os métodos e status abaixo são os <b>resultados reais</b> das consultas — não suposições. Nenhum mecanismo de login, paywall ou anti-bot é contornado.</div>` +
+  groups.map(([k,l,c])=>{ const ss=D.sources.filter(s=>(s.status||'pendente')===k); if(!ss.length) return '';
+    return `<h2><span class="dot" style="background:${c}"></span>${l} (${ss.length})</h2><div class="tablewrap"><table><tr><th>Fonte</th><th>Tipo</th><th>Método</th><th>Última consulta</th><th>Publicações / promoções</th><th>Erros</th><th>Login/assinatura</th><th>Confiabilidade</th><th>Limitações</th></tr>
+    ${ss.map(s=>`<tr><td><a href="${esc(s.url)}" target="_blank" rel="noopener"><b>${esc(s.name)}</b></a><br><span style="font-size:11.5px;color:var(--muted)">${esc(s.url)}</span></td><td>${tierL[s.tier]}</td><td>${esc(s.method||'—')}${s.method_url?`<br><span style="font-size:11px;color:var(--muted)">${esc(s.method_url)}</span>`:''}</td><td style="white-space:nowrap">${fmtDT(s.last_check)}${s.last_ok?`<br><span style="font-size:11px;color:var(--muted)">último sucesso ${ago(s.last_ok)}</span>`:''}</td><td>${s.items_found} / ${s.promos_found}</td><td>${s.total_errors}${s.success_rate!=null?` <span style="font-size:11px;color:var(--muted)">(${s.success_rate}% ok)</span>`:''}${s.last_error?`<br><span style="font-size:11px;color:var(--crit)">${esc(s.last_error)}</span>`:''}${s.cooldown_until?`<br><span style="font-size:11px">pausada até ${fmtDT(s.cooldown_until)}</span>`:''}</td><td>${s.needs_login===1?'Sim':s.needs_login===0?'Não':'A confirmar'}</td><td>${esc(s.reliability)}</td><td style="font-size:12px;max-width:320px">${esc(s.access_notes)}</td></tr>`).join('')}</table></div>`; }).join('');
+}
+
+function exec(){
+  return `<h2 style="margin-top:0">Execuções</h2><div class="tablewrap"><table><tr><th>#</th><th>Início</th><th>Gatilho</th><th>Status</th><th>Fontes ok / erro / pausadas</th><th>Publicações novas</th><th>Promoções novas / atualizadas</th><th>Requisições</th><th>Registro</th></tr>
+  ${D.runs.map(r=>`<tr><td>${r.id}</td><td style="white-space:nowrap">${fmtDT(r.started_at)}</td><td>${esc(r.trigger)}</td><td>${esc(r.status)}</td><td>${r.sources_ok??'—'} / ${r.sources_error??'—'} / ${r.sources_skipped??'—'}</td><td>${r.items_new??'—'}</td><td>${r.promos_new??'—'} / ${r.promos_updated??'—'}</td><td>${r.requests??'—'}</td><td>${r.log?`<details><summary>ver</summary><pre>${esc(r.log)}</pre></details>`:''}</td></tr>`).join('')}</table></div>
+  <h2>Relatórios enviados</h2>${D.reports.length? D.reports.map(r=>`<details class="panel" style="margin-bottom:8px"><summary>${esc(r.subject)} — ${fmtDT(r.at)} — ${r.sent.length?'enviado por '+r.sent.join(', '):'sem canal configurado (só no dashboard)'}</summary><pre>${esc(r.text)}</pre></details>`).join('') : '<div class="empty">Nenhum relatório gerado ainda. O resumo diário sai às 8h e o semanal às segundas, 8h (horário de Brasília).</div>'}`;
+}
+
+function render(){
+  nav();
+  const app = $('#app');
+  app.innerHTML = ({geral,promos,hist,alertas,fontes,exec}[tab]||geral)();
+  bindFavs(app);
+  if(tab==='promos') bindFilters();
+  app.querySelectorAll('[data-go]').forEach(k=>k.onclick=()=>{ const g=k.dataset.go; F={status:'abertas'};
+    if(g==='ativas') F.status='ativas'; else if(g==='novas') F.recent='24'; else if(g==='encerrando'){ F.status='ativas'; F.endby=new Date(NOW.getTime()+864e5).toISOString().slice(0,10);} else if(g==='indet') F.status='indeterminada'; else if(g.startsWith('cat:')){ F.status='ativas'; F.category=g.slice(4);}
+    store.set('milhas_filters',F); tab='promos'; location.hash='promos'; render(); });
+}
+render();
+})();
+</script>
+</body>
+</html>

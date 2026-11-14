@@ -1,0 +1,31 @@
+# Preferências do monitor. Edite e faça commit — vale a partir da próxima execução.
+
+[monitor]
+max_items_per_source = 30            # publicações lidas por fonte em cada ciclo
+max_article_fetches_per_source = 30  # páginas de artigo abertas por fonte/ciclo (quando o feed não traz o texto)
+per_host_interval_seconds = 3.0      # intervalo mínimo entre requisições ao mesmo site
+timeout_seconds = 20
+cooldown_after_errors = 5            # pausa a fonte após N falhas seguidas…
+cooldown_minutes = 180               # …por este tempo
+official_verify_per_run = 6          # regulamentos oficiais conferidos por ciclo
+
+[alerts]
+new_promo = true
+new_promo_categories = ["transferencia", "compra_bonificada", "compra_pontos", "clube", "cartao", "resgate", "outra"]
+transfer_min_bonus = 80              # alerta de transferência com bônus ≥ 80%
+ppr_min = 10                         # alerta de compra bonificada com ≥ 10 pontos por real
+milheiro_max = 30.0                  # alerta de compra de pontos/clube com milheiro ≤ R$ 30
+club_special = true
+ending_hours = 24                    # aviso de campanha encerrando
+changes = true                       # mudança de bônus, prazo ou pontuação
+ppr_above_history_factor = 1.5       # loja oferecendo ≥ 1,5× a sua mediana histórica
+programs = []                        # ex.: ["Smiles", "LATAM Pass"] para limitar os alertas
+
+[reports]
+daily_hour = 8          # resumo diário às 8h (America/Sao_Paulo)
+weekly_weekday = 0      # 0 = segunda-feira
+weekly_hour = 8
+
+[site]
+title = "Central de Pontos e Milhas"
+ended_days_visible = 30
