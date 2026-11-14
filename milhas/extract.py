@@ -176,6 +176,11 @@ def _transfer_parties(title: str, text: str) -> tuple[list[str], str | None]:
     origins = [p for p in progs if p != dest and PROGRAMS[p][1] in ("banco", "pontos")]
     if not origins and re.search(r"todos os parceiros|cart(ões|oes) de crédito|bancos|programas parceiros|pontos do cartão|pontos dos cartões", (t + " " + text[:600]).lower()):
         origins = ["Todos os parceiros"]
+    if dest and not origins:
+        # "Bônus TudoAzul Emirates Skywards": no padrão "Bônus <destino> <origem>", o 2º programa é a origem
+        others = [p for p in programs_in(t) if p != dest]
+        if others:
+            origins = others[:1]
     if dest is None and len(progs) >= 2:
         dest = progs[-1]
         origins = [p for p in progs if p != dest]
