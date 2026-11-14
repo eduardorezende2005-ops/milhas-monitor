@@ -1,2 +1,2 @@
-ilhas/"""Central de inteligência de pontos e milhas — monitor automático de promoções."""
+# Central de pontos e milhas - monitor automatico de promocoes.
 __version__ = "1.0.0"
