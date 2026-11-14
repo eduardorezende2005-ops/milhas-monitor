@@ -1,5 +1,7 @@
 # Central de Pontos e Milhas
 
+**No ar:** https://eduardorezende2005-ops.github.io/milhas-monitor/ · repositório `eduardorezende2005-ops/milhas-monitor` · atualização automática a cada 30 min (GitHub Actions).
+
 Monitor automático de promoções de pontos e milhas no Brasil. A cada 30 minutos ele consulta 21 fontes,
 extrai e classifica as campanhas, junta as duplicadas, confere a validade, guarda o histórico, envia alertas
 e publica um dashboard.
@@ -63,7 +65,7 @@ python -m milhas run --only livelo,smiles
 python -m milhas sources               # status das fontes
 python -m milhas report daily          # força o resumo diário
 python -m milhas seed seed/real_items_2026-11-13.json   # carga de teste com publicações reais
-python -m unittest discover tests -v   # 22 testes
+python -m unittest discover tests -v   # 26 testes (também rodam antes de cada ciclo no GitHub)
 python -m milhas reprocess             # reextrai tudo o que já foi coletado, sem acessar os sites
 ```
 
@@ -102,6 +104,8 @@ Eles servem para **conferir regulamentos** linkados pelos portais, o que gera o 
 As campanhas deles aparecem no dashboard porque os portais as divulgam, quase sempre no mesmo dia.
 
 ## Manutenção
+
+- **Reprocessar após mudar regras:** Actions → monitor → Run workflow → campo "Reprocessar" = `sim` (reaplica as regras a tudo o que já foi coletado, sem acessar os sites).
 
 - **Ajustar uma fonte:** `milhas/sources.py` (feeds, páginas, notas de acesso).
 - **Novo padrão de texto não reconhecido:** adicione o caso em `tests/test_core.py` e ajuste a regex em `milhas/extract.py` ou `milhas/dates.py`.
