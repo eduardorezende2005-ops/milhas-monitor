@@ -27,6 +27,8 @@ def build_data(con, settings: dict) -> dict:
         p["link"] = notify.promo_link(con, p)
     sources = rows(con, "SELECT id,name,url,tier,method,method_url,status,last_check,last_ok,consecutive_errors,total_errors,total_checks,items_found,promos_found,last_error,access_notes,needs_login,cooldown_until FROM sources ORDER BY tier DESC, name")
     for s in sources:
+        s["items_found"] = con.execute("SELECT COUNT(*) FROM items WHERE source_id=?", (s["id"],)).fetchone()[0]
+        s["promos_found"] = con.execute("SELECT COUNT(DISTINCT promo_id) FROM items WHERE source_id=? AND promo_id IS NOT NULL", (s["id"],)).fetchone()[0]
         s["reliability"] = ("alta (fonte oficial)" if s["tier"] == 3 else "alta (portal especializado)" if s["tier"] == 2 else "média (agregador)")
         if s["total_checks"]:
             s["success_rate"] = round(100 * (s["total_checks"] - s["total_errors"]) / s["total_checks"])
