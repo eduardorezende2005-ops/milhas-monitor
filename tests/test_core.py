@@ -106,6 +106,14 @@ class Extraction(unittest.TestCase):
         e = ex("Ganhe até 25.000 pontos ao assinar o Clube Livelo com nosso cupom exclusivo – milheiro a partir de R$ 21,56")
         self.assertEqual((e.category, e.bonus_points, e.milheiro), ("clube", 25000, 21.56))
 
+    def test_official_links_only_campaign_pages(self):
+        from milhas.extract import extract
+        from milhas.sources import OFFICIAL_DOMAINS
+        links = ["https://www.smiles.com.br/mfe/emissao-passagem/?adults=1&departureDate=1795435200000&originAirport=GRU",
+                 "https://www.smiles.com.br/promocao/regulamento-transferencia-70"]
+        e = extract("Smiles oferece até 70% de bônus na transferência de pontos", "até 13/11/2026", datetime(2026, 11, 9), links, OFFICIAL_DOMAINS)
+        self.assertEqual(e.official_links, ["https://www.smiles.com.br/promocao/regulamento-transferencia-70"])
+
     def test_not_promo(self):
         self.assertFalse(ex("Aprenda a usar Avios para fazer upgrade de cabine").is_promo)
         self.assertFalse(ex("Aproveite os próximos feriados estacionando com 10% de desconto com a Estapar").is_promo)
