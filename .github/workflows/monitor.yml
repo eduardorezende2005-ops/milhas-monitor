@@ -9,6 +9,10 @@ on:
         description: "Forçar relatório (daily/weekly) — deixe vazio para ciclo normal"
         required: false
         default: ""
+      reprocess:
+        description: "Reprocessar tudo o que já foi coletado (sim/não) — use após ajustar regras"
+        required: false
+        default: "não"
 
 concurrency:
   group: monitor
@@ -59,7 +63,9 @@ jobs:
           WHATSAPP_TO: ${{ secrets.WHATSAPP_TO }}
           WHATSAPP_TEMPLATE: ${{ secrets.WHATSAPP_TEMPLATE }}
         run: |
-          if [ -n "${{ github.event.inputs.report }}" ]; then
+          if [ "${{ github.event.inputs.reprocess }}" = "sim" ]; then
+            python -m milhas reprocess
+          elif [ -n "${{ github.event.inputs.report }}" ]; then
             python -m milhas report "${{ github.event.inputs.report }}"
             python -m milhas export
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
