@@ -47,6 +47,9 @@ jobs:
             git show origin/data:milhas.db > data/milhas.db || true
           fi
 
+      - name: Testes automáticos
+        run: python -m unittest discover tests
+
       - name: Executar ciclo
         env:
           TZ: America/Sao_Paulo
