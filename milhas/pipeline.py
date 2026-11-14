@@ -95,15 +95,16 @@ def process_entry(con, src: dict, entry: discover.Entry, f: Fetcher | None, now:
     url = entry.url.split("#")[0]
     if not url:
         return
-    existing = con.execute("SELECT id, content_hash, promo_id FROM items WHERE url=?", (url,)).fetchone()
-    if existing is not None and not entry.full:
+    existing = con.execute("SELECT id, content_hash, promo_id, text FROM items WHERE url=?", (url,)).fetchone()
+    poor = existing is not None and len(existing["text"] or "") < 400  # texto guardado incompleto: vale reabrir a matéria
+    if existing is not None and not entry.full and not poor:
         # Já conhecida e a listagem só traz o título: não reprocessa com menos informação.
         # Exceção útil: a listagem passou a marcar a promoção como expirada/encerrada.
         if existing["promo_id"] and re.search(r"⛔|expirad|encerrad", entry.title or "", re.I):
             con.execute("UPDATE promos SET expired_flag=1 WHERE id=?", (existing["promo_id"],))
         return
     text, links, published, title = entry.text, entry.links, entry.published, entry.title
-    if not entry.full and f is not None and fetch_budget[0] > 0 and existing is None:
+    if not entry.full and f is not None and fetch_budget[0] > 0 and (existing is None or poor):
         fetch_budget[0] -= 1
         r = f.get(url)
         if r.ok and r.text:
