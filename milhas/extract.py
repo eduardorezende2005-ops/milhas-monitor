@@ -323,7 +323,10 @@ def extract(title: str, text: str, published: datetime, links: list[str] | None 
         for l in links:
             host = re.sub(r"^https?://(www\.)?", "", l).split("/")[0]
             if any(host == d or host.endswith("." + d) for d in official_domains):
-                if l not in e.official_links and not re.search(r"\.(png|jpe?g|webp|gif|svg)(\?|$)", l):
+                # só páginas de campanha/regulamento — nunca buscas de voo, imagens ou URLs gigantes
+                if (l not in e.official_links and len(l) <= 200
+                        and not re.search(r"\.(png|jpe?g|webp|gif|svg)(\?|$)|/mfe/|emissao|busca|search|\?.*departure", l, re.I)
+                        and re.search(r"promo|regulament|campanha|bonus|bônus|oferta|clube|transfer|parceir|black", l, re.I)):
                     e.official_links.append(l)
         e.official_links = e.official_links[:6]
 
