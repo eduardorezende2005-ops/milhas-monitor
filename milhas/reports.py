@@ -39,7 +39,7 @@ def _score(p) -> float:
 def build_daily(con, now: datetime) -> tuple[str, str, str]:
     since = (now - timedelta(hours=24)).isoformat()
     soon = (now + timedelta(hours=24)).isoformat()
-    new = rows(con, "SELECT * FROM promos WHERE first_seen>=? AND status!='encerrada' ORDER BY first_seen DESC", since)
+    new = sorted(rows(con, "SELECT * FROM promos WHERE first_seen>=? AND status!='encerrada'", since), key=_score, reverse=True)
     active = rows(con, f"SELECT * FROM promos WHERE status IN {ACTIVE}")
     best = sorted(active, key=_score, reverse=True)[:8]
     ending = rows(con, f"SELECT * FROM promos WHERE status IN {ACTIVE} AND end_at BETWEEN ? AND ? ORDER BY end_at", now.isoformat(), soon)
